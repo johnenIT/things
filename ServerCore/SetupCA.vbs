@@ -1,71 +1,37 @@
 'Copyright (c) Microsoft Corporation. All rights reserved.
-
 'Disclaimer ' 'This sample script is not supported under any Microsoft standard support 'program or service. This sample script is provided AS IS without warranty of 'any kind. Microsoft further disclaims all implied warranties including, 'without limitation, any implied warranties of merchantability or of fitness 'for a particular purpose. The entire risk arising out of the use or 'performance of the sample scripts and documentation remains with you. In no 'event shall Microsoft, its authors, or anyone else involved in the creation, 'production, or delivery of the scripts be liable for any damages whatsoever '(including, without limitation, damages for loss of business profits, business 'interruption, loss of business information, or other pecuniary loss) arising 'out of the use of or inability to use this sample script or documentation, 'even if Microsoft has been advised of the possibility of such damages.
-
 ' Catch errors at compile time, sort of. Option Explicit
-
 '***************************************************************** 'Displays script-understood command line parameters ' Sub Usage() Call OutputLine(ECHOMINIMAL, "SetupCA.vbs - Certificate Services Setup Automation for Windows Server 2008/2008 R2") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "Parameters:") Call OutputLine(ECHOMINIMAL, "/SP - Specify Provider") Call OutputLine(ECHOMINIMAL, "/SK - Specify Key length") Call OutputLine(ECHOMINIMAL, "/SA - Specify Hash algorithm") Call OutputLine(ECHOMINIMAL, "/SN - Specify CA Name") Call OutputLine(ECHOMINIMAL, "/DN - Specify DN Suffix for CA cert subject") Call OutputLine(ECHOMINIMAL, "/SR - Specify Root CA (Required for subordinate CA" & Chr(39) & "s and Web service)") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "/OR - Save CA cert request to a file (Required for offline root CA" & Chr(39) & "s)") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "/RK - Reuse Key") Call OutputLine(ECHOMINIMAL, "/RC - Reuse Cert and Key") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "/interactive - Specifiy whether CA will be set to interact with desktop") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "/IE - Install Enterprise Root CA Service") Call OutputLine(ECHOMINIMAL, "/IS - Install Standalone Root CA Service") Call OutputLine(ECHOMINIMAL, "/IF - Install Enterprise Subordinate CA Service") Call OutputLine(ECHOMINIMAL, "/IT - Install Standalone Subordinate CA Service") Call OutputLine(ECHOMINIMAL, "/IW - Install web CA Service - works with any of the above or by itself") Call OutputLine(ECHOMINIMAL, " This option is not relevant for server core machines") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "/UC - Uninstall CA Service") Call OutputLine(ECHOMINIMAL, "") Call OutputLine(ECHOMINIMAL, "/? - Display this usage") Call OutputLine(ECHOMINIMAL, "") End Sub ' Usage
-
 '***************************************************************** 'Define external constant values ' ' CA Role Const ENTERPRISE_ROOTCA = 0 Const ENTERPRISE_SUBCA = 1 Const STANDALONE_ROOTCA = 3 Const STANDALONE_SUBCA = 4 Const NO_INSTALL_CA = -1 Const UNINSTALL_CA = 8 Const UNINSTALL_WEB_PAGES = 9
-
 'FileSystemObject defines Const FILE_FLAG_READ = 1 Const FILE_FLAG_WRITE = 2 Const FILE_FLAG_APPEND = 8
-
 'Logging level Const ECHOMINIMAL = 1
-
 'Error codes to handle: Const RPC_UNAVAILABLE = - 2147023174 '0x800706BA Const DOMAIN_UNAVAILABLE = - 2147023541 '0x8007054B Const REG_VALUE_NOT_FOUND = - 2147024894 '0x80070002 Const IMAGE_TAMPERED = - 2147024319 '0x80070241 Const VALUE_OUT_OF_RANGE = - 2147016574 '0x80072082 Const ROOT_CA_NOT_FOUND = 462
-
 'Properties that can be set: Const SETUPPROP_INVALID = - 1 Const SETUPPROP_CATYPE = 0 Const SETUPPROP_CAKEYINFORMATION = 1 Const SETUPPROP_INTERACTIVE = 2 Const SETUPPROP_CANAME = 3 Const SETUPPROP_CADSSUFFIX = 4 Const SETUPPROP_VALIDITYPERIOD = 5 Const SETUPPROP_VALIDITYPERIODUNIT = 6 Const SETUPPROP_EXPIRATIONDATE = 7 Const SETUPPROP_PRESERVEDATABASE = 8 Const SETUPPROP_DATABASEDIRECTORY = 9 Const SETUPPROP_LOGDIRECTORY = 10 Const SETUPPROP_SHAREDFOLDER = 11 Const SETUPPROP_PARENTCAMACHINE = 12 Const SETUPPROP_PARENTCANAME = 13 Const SETUPPROP_REQUESTFILE = 14 Const SETUPPROP_WEBCAMACHINE = 15 Const SETUPPROP_WEBCANAME = 16
-
 '***************************************************************** 'Define constants and defaults ' Const CONST_ERROR = 0 Const CONST_WSCRIPT = 1 Const CONST_CSCRIPT = 2 Const CONST_SHOW_USAGE = 3 Const CONST_PROCEED = 4
-
 Const DEFCANAME = "" Const DEFDNSUFFIX = "" Const DEFROOTCANAME = "" Const DEF_SEL_KEY_SIZE = "2048" Const DEF_SEL_HASH_ALG = "SHA1" Const DEF_INSTALL_WEB_OPTION = False Const DEF_INSTALL_SVC_OPTION = False Const DEF_LOG_FILENAME = "_SetupCA.log" Const DEF_INTERACTIVE = False
-
 'example Capi1 Provider: "Microsoft Strong Cryptographic Provider" 'example RSA CNG provider: "RSA#MicrosoftKSP" 'example ECC 256 provider: "ECDSA_P256#Microsoft Software Key Storage Provider" 'example ECC 384 provider: "ECDSA_P384#Microsoft Software Key Storage Provider" 'example ECC 521 provider: "ECDSA_P521#Microsoft Software Key Storage Provider" Const DEF_SEL_PROVIDER = "RSA#Microsoft Software Key Storage Provider"
-
 'Cert Server Role Dim eCARole eCARole = NO_INSTALL_CA
-
 'Root CA's name (if this is a subordinate) Dim strRootCAName strRootCAName = DEFROOTCANAME
-
 'This CA's name Dim strCAName Dim strDNSuffix strCAName = DEFCANAME strDNSuffix = DEFDNSUFFIX
-
 'Crypto provider to be used to sign certs this CA Issues Dim strSelectedCSP strSelectedCSP = "" ' DEF_SEL_PROVIDER
-
 'Hash algorithm to be used to sign certs this CA Issues Dim strSelectedHashAlg strSelectedHashAlg = "" ' DEF_SEL_HASH_ALG
-
 'Signing key length Dim iSelectedKeySize iSelectedKeySize = "" ' DEF_SEL_KEY_SIZE
-
 'Save request to file, for submitting to offline root Dim strRequestFile strRequestFile = ""
-
 'Key/Cert Re-use flags Dim bReuseKey Dim bReuseCert Dim bReuseDB bReuseKey = False bReuseCert = False bReuseDB = False
-
 'Interactive Flag Dim bInteractive bInteractive = DEF_INTERACTIVE
-
 'Default to install or uninstall Dim bInstall bInstall = True
-
 'Install the Web interface Dim bWebPages bWebPages = DEF_INSTALL_WEB_OPTION
-
 ' Install the Cert Server service. Dim bInstallService bInstallService = DEF_INSTALL_SVC_OPTION
-
 'Log file Dim OutputFile Dim OutputFile2
-
 'Needs to differentiate which package needs to be installed Dim PKGCA Dim PKGIIS Dim PKGWEB PKGCA = True PKGIIS = True PKGWEB = True
-
 'Set if installing on core build Dim bIsCore bIsCore = False
-
 'For the 'retry once' implementation Dim bRecursed bRecursed = False
-
 'Begin script logic
-
 'Ensure the output won't become hundreds of popup windows Call VerifyStandardStreams()
-
 'Set up Local logging Set OutputFile = CreateLogFile(DEF_LOG_FILENAME)
-
 Dim g_oCASetup
-
 'Start the script Call Main()
-
 '******************************************************************** '* '* Sub InstallPackages() '* '* Purpose: Install all required packagemanager packages '* '********************************************************************' Sub InstallPackages(Install)
-
 
 Copy
 'Get shell object to determine system drive value
@@ -106,7 +72,6 @@ End Sub 'InstallPackage
 '******************************************************************** '* '* Sub Main() '* '* Purpose: Executes the main script logic '* Input:
 '* '* Output:
 '* '******************************************************************** Sub Main () Dim intOpMode
-
 
 Copy
 'Parse the command line
@@ -195,7 +160,6 @@ End Sub 'Main
 
 '******************************************************************** '* '* Sub VerifyStandardStreams() '* '* Purpose: verify CScript.exe was used to launch this script. '* '******************************************************************** Sub VerifyStandardStreams() On Error Resume Next
 
-
 Copy
 'Attempt to write to the error stream
 Call WScript.StdOut.WriteLine()
@@ -216,7 +180,6 @@ End Sub 'VerifyStandardStreams
 
 '******************************************************************** '* '* Sub OutputLine() '* '* Purpose: Control the debug output at one location '* '* Input: Level compare to verbosity - if lower, do not display '* string String to output. '* '******************************************************************** Sub OutputLine(ByVal level, ByVal String)
 
-
 Copy
 Call OutputFile.WriteLine(String)
 WScript.StdOut.WriteLine String
@@ -226,7 +189,6 @@ End Sub ' OutputLine
 
 '******************************************************************** '* '* Function intParseCmdLine() '* '* Purpose: Parses the command line. '*
 '* Input: none '* '* Output: none '* '******************************************************************** Function intParseCmdLine() On Error Resume Next
-
 
 Copy
 Dim strFlag
@@ -545,7 +507,6 @@ End Function
 
 '******************************************************************** '* '* Function CreateLogFile() '* '* Purpose: Creates the local log file of all of the script output '* '* Input: strLogFileName '* '******************************************************************** Function CreateLogFile(ByVal strLogFileName) Dim FileSystem Set FileSystem = CreateObject("Scripting.FileSystemObject")
 
-
 Copy
 'Get the actual path
 Dim strFileName
@@ -577,7 +538,6 @@ On Error Goto 0
 End Function ' CreateLogFile
 
 '******************************************************************** '* '* Function SetProvider() '* '* Purpose: '* '* Input: ProviderString '* HashAlg '* KeyLen '* '******************************************************************** Function SetProvider(ByRef oCASetup, ByVal ProviderString, ByVal HashAlg, ByVal KeyLen) Call OutputLine(ECHOMINIMAL, _ "SetProvider called with " & _ Chr(34) & ProviderString & Chr(34) & ", " & _ Chr(34) & HashAlg & Chr(34) & ", " & _ Chr(34) & KeyLen & Chr(34))
-
 
 Copy
 'Declare variable to store KeyInfo object
@@ -628,7 +588,6 @@ SetProvider = True
 End Function 'SetProvider
 
 '******************************************************************** '* '* Function InstallAndVerifyCA() '* '* Purpose: runs setup on CA object with specified parameters '* '* Input: CAType '* CAService '* WebPages '* '********************************************************************' Function InstallAndVerifyCA(ByVal CAType, ByVal CAService, ByVal WebPages) Dim LocalCAConfig Dim CADBPath
-
 
 Copy
 ' Default to failed
@@ -785,14 +744,12 @@ End Function 'InstallAndVerifyCA
 '******************************************************************** '* '* Function UninstallCA() '* '* Purpose: Uninstalls all of the CA server components or optionally just the pages '* '* Input:
 '* '********************************************************************' Function UninstallCA(ByVal WebPagesOnly) Dim LocalCAConfig
 
-
 Copy
 Call OutputLine(ECHOMINIMAL, "UninstallCA: calling GetLocalCAConfig")
 
 ' See where the server is at currently
 LocalCAConfig = GetLocalCAConfig()
 if (WebPagesOnly = False) Then If ("" = LocalCAConfig) Then Call OutputLine(ECHOMINIMAL, "UninstallCA: CA not installed!") UninstallCA = True Exit Function 'UninstallCA End If ' getlocalcaconfig failed End If
-
 
 Copy
 Call OutputLine(ECHOMINIMAL, "UninstallCA: calling .PreUninstall")
@@ -838,7 +795,6 @@ End Function 'UninstallCA
 '******************************************************************** '* '* Function GetLocalCAConfig() '* '* Purpose: Determine role of CA if installed '* '* Input:
 '* '********************************************************************' Function GetLocalCAConfig() Dim WshShell Dim ActiveConfig Dim CAName Dim CAServer
 
-
 Copy
 On Error Resume Next
 
@@ -878,7 +834,6 @@ End Function 'GetLocalCAConfig
 '******************************************************************** '* '* Function PingCA() '* '* Purpose: use CertUtil to ping the CA '* '* Input:
 '* '********************************************************************' Function PingCA(ByVal CAConfig) Dim WshShell Dim command Dim RunRet
 
-
 Copy
 Set WshShell = WScript.CreateObject("WScript.Shell")
 
@@ -896,7 +851,6 @@ End Function ' PingCA
 
 '******************************************************************** '* '* Function SetUpKeyReuse() '* '* Purpose: use CertUtil to ping the CA '* '* Input:
 '* '********************************************************************' Function SetUpKeyReuse(ByVal bReuseKey, ByVal bReuseCert, ByVal KeyName)
-
 
 Copy
 Dim oCAKeyInfo
