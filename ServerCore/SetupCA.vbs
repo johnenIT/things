@@ -39,29 +39,23 @@ Dim WshShell
 Set WshShell = WScript.CreateObject("WScript.Shell")
 
 If (Install = True) Then
-
     If (PKGCA = True) Then
         Call OutputLine(ECHOMINIMAL, "Installing CA Packages, this will take several minutes...")
         Call WshShell.Run ("cmd /c servermanagercmd -install ADCS-Cert-Authority -resultPath installResult.xml", 0 , True)
     End If
-
     If (PKGWEB = True) Then
         Call OutputLine(ECHOMINIMAL, "Installing Web Page Packages, this will take several minutes...")
         Call WshShell.Run ("cmd /c servermanagercmd -install ADCS-Web-Enrollment -resultPath installResult.xml", 0 , True)
     End If
-
 Else
-
     If (PKGWEB = True) Then
         Call OutputLine(ECHOMINIMAL, "Removing Web Page Packages, this will take several minutes...")
         Call WshShell.Run ("cmd /c servermanagercmd -remove ADCS-Web-Enrollment -resultPath installResult.xml", 0 , True)
     End If
-
     If (PKGCA = True) Then
         Call OutputLine(ECHOMINIMAL, "Removing CA Packages, this will take several minutes...")
         Call WshShell.Run ("cmd /c servermanagercmd -remove ADCS-Cert-Authority -resultPath installResult.xml", 0 , True)
     End If
-
 End If
 
 Call OutputLine(ECHOMINIMAL, "Installing Packages, this will take several minutes...")
@@ -78,22 +72,17 @@ Copy
 intOpMode = intParseCmdLine()
 
 Select Case intOpMode
-
     Case CONST_SHOW_USAGE
         Call Usage()
         Exit Sub
-
     Case CONST_PROCEED
         'Do Nothing
-
     Case CONST_ERROR
         Call OutputLine(ECHOMINIMAL,"Error occurred in passing parameters.")
         Exit Sub
-
     Case Else                    'Default -- should never happen
         Call OutputLine(ECHOMINIMAL,"Error occurred in passing parameters.")
         Exit Sub
-
 End Select
 
 'Check if certocm.dll is present, if not we are most likely running on core and need
@@ -122,14 +111,12 @@ End If
 
 Set WshShell = Nothing
 Set envVars  = Nothing
-
 Set g_oCASetup = CreateObject("certocm.CertSrvSetup")
 
 'Install Packages
 Call OutputLine(ECHOMINIMAL,"Proceeding to update packages ...")
 Call InstallPackages(bInstall)
 wscript.echo "bInstallService: " & bInstallService wscript.echo "eCARole: " & eCARole wscript.echo "bWebPages: " & bWebPages If ((eCARole <> NO_INSTALL_CA) And (eCARole <> UNINSTALL_CA) And (eCARole <> UNINSTALL_WEB_PAGES)) or (bWebPages <> False) Then Call OutputLine(ECHOMINIMAL, "Main: Info collection complete. Starting install phase..." ) ' got the info we needed, now install.. Call OutputFile.WriteLine("Main: Installing...")
-
 
 Copy
     If (True = InstallAndVerifyCA(eCARole, bInstallService, bWebPages)) Then
@@ -167,24 +154,20 @@ Call WScript.StdOut.WriteLine()
 'If couldn't display the error because cscript wasn't used, 
 
 If (Err.Number <> 0) Then
-
     'Report problem
     Call WScript.Echo("Please run this script from cscript.")
-
     'Exit the script
     Call WScript.Quit (1)
 End If
 
 On Error Goto 0
 End Sub 'VerifyStandardStreams
-
 '******************************************************************** '* '* Sub OutputLine() '* '* Purpose: Control the debug output at one location '* '* Input: Level compare to verbosity - if lower, do not display '* string String to output. '* '******************************************************************** Sub OutputLine(ByVal level, ByVal String)
 
 Copy
 Call OutputFile.WriteLine(String)
 WScript.StdOut.WriteLine String
 End Sub ' OutputLine
-
 '******************************************************************** '* '* Sub PrintErrorInfo() '* '* Purpose: Control the debug output at one location '* '* Input: Message Message to log '* Err Error obejct to get info from '* '******************************************************************** Sub PrintErrorInfo(ByVal Message, ByVal oErr) Call OutputLine(ECHOMINIMAL, Message) Call OutputLine(ECHOMINIMAL, "Error Info: " & oErr.Number & ": " & oErr.Description) Call OutputLine(ECHOMINIMAL, "Error Source: " & oErr.Source) End Sub ' OutputLine
 
 '******************************************************************** '* '* Function intParseCmdLine() '* '* Purpose: Parses the command line. '*
@@ -199,30 +182,24 @@ Dim objFileSystem
 
 If Wscript.Arguments.Count > 0 Then
     Call OutputFile.WriteLine("parsing arguments: ")
-
     For Each ArgTemp in WScript.Arguments
-
         If (InStr(ArgTemp," ") > 0) Then
             Call OutputFile.Write(Chr(34) & ArgTemp & Chr(34) & " ")
         Else
             Call OutputFile.Write(ArgTemp & " ")
         End If
-
     Next ' ArgTemp
-
     Call OutputFile.WriteLine
     strFlag = Wscript.arguments.Item(0)
 End If
 
 'No arguments have been received
-
 If IsEmpty(strFlag) Then
     intParseCmdLine = CONST_SHOW_USAGE
     Exit Function ' intParseCmdLine
 End If
 
 'Check if the user is asking for help or is just confused
-
 If (strFlag = "help") Or (strFlag = "/h") Or (strFlag = "\h") Or (strFlag = "-h") _
     Or (strFlag = "\?") Or (strFlag = "/?") Or (strFlag = "?") _
     Or (strFlag = "h") Then
@@ -234,172 +211,124 @@ End If
 intArgIter = 0
 
 Do While intArgIter <= Wscript.arguments.Count - 1
-
     Select Case Left(LCase(Wscript.arguments.Item(intArgIter)),4)
         Case "/int"
             bInteractive = True
             intArgIter   = intArgIter + 1
-
         Case "/sp"
-
             If Not blnGetArg("Crypto Provider", strSelectedCSP, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/sk"
-
             If Not blnGetArg("Key length", iSelectedKeySize, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/sa"
-
             If Not blnGetArg("Hash algorithm",strSelectedHashAlg, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/sn"
-
             If Not blnGetArg("CA Name", strCAName, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/dn"
-
             If Not blnGetArg("DN Suffix", strDNSuffix, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
-
         Case "/sr"
-
             If Not blnGetArg("Root CA", strRootCAName, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/or"
-
             If Not blnGetArg("Request File", strRequestFile, intArgIter) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/iw"
-
             If bIsCore = False Then
                 bWebPages = True
             End If
-
             intArgIter = intArgIter + 1
-
         Case "/ie"
-
             If (eCARole <> NO_INSTALL_CA) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intParseCmdLine = CONST_PROCEED
             bInstallService = True
             eCARole         = ENTERPRISE_ROOTCA
             intArgIter      = intArgIter + 1
-
         Case "/is"
-
             If (eCARole <> NO_INSTALL_CA) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intParseCmdLine = CONST_PROCEED
             bInstallService = True
             eCARole         = STANDALONE_ROOTCA
             intArgIter      = intArgIter + 1
-
         Case "/if"
-
             If (eCARole <> NO_INSTALL_CA) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intParseCmdLine = CONST_PROCEED
             bInstallService = True
             eCARole         = ENTERPRISE_SUBCA
             intArgIter      = intArgIter + 1
-
         Case "/it"
-
             If (eCARole <> NO_INSTALL_CA) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             intParseCmdLine = CONST_PROCEED
             bInstallService = True
             eCARole         = STANDALONE_SUBCA
             intArgIter      = intArgIter + 1
-
         Case "/uc"
-
             If (eCARole <> NO_INSTALL_CA) And (eCARole <> UNINSTALL_CA)  Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             bInstallService = False
             bWebPages      = False
             bInstall        = False
             eCARole         = UNINSTALL_CA
             intParseCmdLine = CONST_PROCEED
             intArgIter      = intArgIter + 1
-
         Case "/uw"
-
             If (eCARole <> NO_INSTALL_CA) And (eCARole <> UNINSTALL_CA) Then
                 intParseCmdLine = CONST_ERROR
                 Exit Function ' intParseCmdLine
             End If
-
             bWebPages      = False
             bInstall        = False
             eCARole         = UNINSTALL_WEB_PAGES
             intParseCmdLine = CONST_PROCEED
             intArgIter      = intArgIter + 1
-
         Case "/rk"
             bReuseKey  = True
             intArgIter = intArgIter + 1
-
         Case "/rc"
             bReuseCert = True
             intArgIter = intArgIter + 1
-
         Case "/rcd"
             bReuseCert = True
             bReuseDB   = True
             intArgIter = intArgIter + 1
-
             'Depricated switches kept to prevent automation from failing
         Case "/sl"
             intArgIter = intArgIter + 2
@@ -407,33 +336,26 @@ Do While intArgIter <= Wscript.arguments.Count - 1
             intArgIter = intArgIter + 2
         Case "/si"
             intArgIter = intArgIter + 2
-
         Case Else 'We shouldn't get here
             Call OutputLine(ECHOMINIMAL, "Invalid or misplaced parameter: " & Wscript.arguments.Item(intArgIter))
             Call OutputLine(ECHOMINIMAL, "Please check the input and try again")
             Call OutputLine(ECHOMINIMAL, "or invoke with " & Chr(39) & "/?" & Chr(39) & " for help with the syntax.")
             Wscript.Quit
-
     End Select
-
 Loop '** intArgIter <= Wscript.arguments.Count - 1
 
 intParseCmdLine = CONST_PROCEED
 End Function
-
 '******************************************************************** '* '* Function blnGetArg() '* '* Purpose: Helper to intParseCmdLine() '* '* Usage: '* '* Case "/s" '* blnGetArg ("server name", strServer, intArgIter) '* '********************************************************************
 
 Private Function blnGetArg (ByVal StrVarName, _ ByRef strVar, _ ByRef intArgIter)
-
 
 Copy
 blnGetArg = False 'failure, changed to True upon successful completion
 Err.Clear
 
 If Len(Wscript.Arguments(intArgIter)) > 3 Then
-
     If Mid(Wscript.Arguments(intArgIter),4,1) = ":" Then
-
         If Len(Wscript.Arguments(intArgIter)) > 4 Then
             strVar    = Right(Wscript.Arguments(intArgIter), _
             Len(Wscript.Arguments(intArgIter)) - 4)
@@ -441,70 +363,57 @@ If Len(Wscript.Arguments(intArgIter)) > 3 Then
             Exit Function
         Else
             intArgIter = intArgIter + 1
-
             If intArgIter > (Wscript.Arguments.Count - 1) Then
                 Call OutputLine(ECHOMINIMAL, "Parameter Missing: " & StrVarName & ".")
                 Call OutputLine(ECHOMINIMAL, "Invalid " & StrVarName & ".")
                 Call OutputLine(ECHOMINIMAL, "Please check the input and try again.")
                 Exit Function
             End If
-
             strVar = Wscript.Arguments.Item(intArgIter)
-
             If Err.Number Then
                 Call OutputLine(ECHOMINIMAL, "Error: " & Err.Number & ": " & Err.Description & ".")
                 Call OutputLine(ECHOMINIMAL, "Invalid " & StrVarName & ".")
                 Call OutputLine(ECHOMINIMAL, "Please check the input and try again.")
                 Exit Function
             End If
-
             If InStr(strVar, "/") Then
                 Call OutputLine(ECHOMINIMAL, "Invalid " & StrVarName)
                 Call OutputLine(ECHOMINIMAL, "Invalid Parameter was:" & StrVar)
                 Call OutputLine(ECHOMINIMAL, "Please check the input and try again.")
                 Exit Function
             End If
-
             blnGetArg = True 'success
         End If
-
     Else
         strVar    = Right(Wscript.Arguments(intArgIter), _
         Len(Wscript.Arguments(intArgIter)) - 4)
         blnGetArg = True 'success
         Exit Function
     End If
-
 Else
     intArgIter = intArgIter + 1
-
     If intArgIter > (Wscript.Arguments.Count - 1) Then
         Call OutputLine(ECHOMINIMAL, "Parameter Missing: " & StrVarName & ".")
         Call OutputLine(ECHOMINIMAL, "Invalid " & StrVarName & ".")
         Call OutputLine(ECHOMINIMAL, "Please check the input and try again.")
         Exit Function
     End If
-
     strVar = Wscript.Arguments.Item(intArgIter)
-
     If Err.Number Then
         Call OutputLine(ECHOMINIMAL, "Error: " & Err.Number & ": " & Err.Description & ".")
         Call OutputLine(ECHOMINIMAL, "Invalid " & StrVarName & ".")
         Call OutputLine(ECHOMINIMAL, "Please check the input and try again.")
         Exit Function
     End If
-
     If InStr(strVar, "/") Then
         Call OutputLine(ECHOMINIMAL, "Invalid " & StrVarName)
         Call OutputLine(ECHOMINIMAL, "Invalid Parameter was:" & StrVar)
         Call OutputLine(ECHOMINIMAL, "Please check the input and try again.")
         Exit Function
     End If
-
     blnGetArg = True 'success
 End If
 End Function
-
 '******************************************************************** '* '* Function CreateLogFile() '* '* Purpose: Creates the local log file of all of the script output '* '* Input: strLogFileName '* '******************************************************************** Function CreateLogFile(ByVal strLogFileName) Dim FileSystem Set FileSystem = CreateObject("Scripting.FileSystemObject")
 
 Copy
@@ -536,7 +445,6 @@ End If
 
 On Error Goto 0
 End Function ' CreateLogFile
-
 '******************************************************************** '* '* Function SetProvider() '* '* Purpose: '* '* Input: ProviderString '* HashAlg '* KeyLen '* '******************************************************************** Function SetProvider(ByRef oCASetup, ByVal ProviderString, ByVal HashAlg, ByVal KeyLen) Call OutputLine(ECHOMINIMAL, _ "SetProvider called with " & _ Chr(34) & ProviderString & Chr(34) & ", " & _ Chr(34) & HashAlg & Chr(34) & ", " & _ Chr(34) & KeyLen & Chr(34))
 
 Copy
@@ -556,14 +464,12 @@ If ("" <> ProviderString) Then
 End If
 
 ' only modify key length if it was specified
-
 If ("" <> KeyLen) Then
     Call OutputLine(ECHOMINIMAL, "SetProvider: Changing oCAKeyInfo.Length to " & KeyLen)
     oCAKeyInfo.Length = KeyLen
 End If
 
 ' Only modify hash algorithm if it was specified
-
 If ("" <> HashAlg) Then
     Call OutputLine(ECHOMINIMAL, "SetProvider: Changing oCAKeyInfo.HashAlgorithm to " & HashAlg)
     oCAKeyInfo.HashAlgorithm = HashAlg
@@ -576,7 +482,6 @@ Call Err.Clear()
 
 ' Set the keyInfo property
 Call oCASetup.SetCASetupProperty(SETUPPROP_CAKEYINFORMATION, oCAKeyInfo)
-
 If (Err.Number <> 0) Then
     Call OutputLine(ECHOMINIMAL, "SetProvider1: Error " & Err.Number & ": " & Err.Description)
     Call OutputLine(ECHOMINIMAL, "Error Source: " & Err.Source)
@@ -586,7 +491,6 @@ End If ' error occurred
 
 SetProvider = True
 End Function 'SetProvider
-
 '******************************************************************** '* '* Function InstallAndVerifyCA() '* '* Purpose: runs setup on CA object with specified parameters '* '* Input: CAType '* CAService '* WebPages '* '********************************************************************' Function InstallAndVerifyCA(ByVal CAType, ByVal CAService, ByVal WebPages) Dim LocalCAConfig Dim CADBPath
 
 Copy
@@ -607,19 +511,15 @@ Err.Number = 0
 Call g_oCASetup.InitializeDefaults(CAService, WebPages)
 
 If (0 <> Err.Number) Then
-
     If (5 = Err.Number) Then
         ' uninstall
-
         If(bRecursed          = False) Then
             bRecursed          = True
             Call UninstallCA(False)
             InstallAndVerifyCA = InstallAndVerifyCA( CAType, CAService, WebPages)
             Exit Function
         End If
-
     End If 'error is already installed
-
     Call PrintErrorInfo("CA Already install and cannot uninstall", Err)
     Call OutputLine(ECHOMINIMAL, "")
     Exit Function 'InstallAndVerifyCA
